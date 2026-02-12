@@ -71,6 +71,12 @@ publishing {
                         name.set("Rainy雨霏")
                     }
                 }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/Rainy-day-y/DgLab-Websocket-Server.git")
+                    developerConnection.set("scm:git:ssh://git@github.com:Rainy-day-y/DgLab-Websocket-Server.git")
+                    url.set("https://github.com/Rainy-day-y/DgLab-Websocket-Server")
+                }
             }
         }
     }

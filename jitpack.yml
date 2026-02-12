@@ -1,0 +1,8 @@
+# JitPack 配置
+# 指定 JDK 版本与项目一致
+jdk:
+  - openjdk21
+
+# 可选：指定 Gradle 版本（如果与 wrapper 不同）
+# install:
+#   - ./gradlew publishToMavenLocal
