@@ -56,7 +56,7 @@ publishing {
             pom {
                 name.set("DgLab WebSocket Server")
                 description.set("WebSocket server library for DgLab integration")
-                url.set("https://github.com/SweetBerryCodes/dglab-websocket-server")
+                url.set("https://github.com/Rainy-day-y/DgLab-Websocket-Server")
                 
                 licenses {
                     license {
