@@ -1,0 +1,77 @@
+import org.gradle.api.publish.maven.MavenPublication
+
+plugins {
+    kotlin("jvm") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
+    `maven-publish`
+}
+
+group = "cn.sweetberry.codes.dglab.websocket"
+version = "0.1.0"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Fabric 项目 loom 会提供这些依赖，使用 compileOnly 避免重复
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    compileOnly("org.slf4j:slf4j-api:2.0.16")
+    
+    // Fabric 不会提供，需要实际引入
+    implementation("org.java-websocket:Java-WebSocket:1.6.0")
+
+    testImplementation(kotlin("test"))
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+// 生成 sources jar
+tasks.register<Jar>("sourcesJar") {
+    archiveClassifier = "sources"
+    from(sourceSets.main.get().allSource)
+}
+
+// 生成 javadoc jar
+tasks.register<Jar>("javadocJar") {
+    archiveClassifier = "javadoc"
+    from(tasks.javadoc)
+}
+
+publishing {
+    publications {
+        register<MavenPublication>("maven") {
+            from(components["java"])
+            
+            artifact(tasks["sourcesJar"])
+            artifact(tasks["javadocJar"])
+            
+            pom {
+                name.set("DgLab WebSocket Server")
+                description.set("WebSocket server library for DgLab integration")
+                url.set("https://github.com/SweetBerryCodes/dglab-websocket-server")
+                
+                licenses {
+                    license {
+                        name.set("MIT")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("Rainy-day-y")
+                        name.set("Rainy雨霏")
+                    }
+                }
+            }
+        }
+    }
+}
