@@ -22,7 +22,10 @@ dependencies {
     // Fabric 不会提供，需要实际引入
     implementation("org.java-websocket:Java-WebSocket:1.6.0")
 
+    // 测试依赖
     testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
 }
 
 kotlin {
