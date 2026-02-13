@@ -96,11 +96,11 @@ data class Payload(
             clientId, targetId, "feedback-${feedbackIndex.code}"
         )
 
-        fun heartbeat(clientId: UUID, errorCode: Error) = Payload(
+        fun heartbeat(clientId: UUID, targetId: UUID? = null, message: String = "200") = Payload(
             type = "heartbeat",
             clientId = clientId.toString(),
-            targetId = "",
-            message = errorCode.code
+            targetId = targetId?.toString() ?: "",
+            message = message
         )
 
         fun close(clientId: UUID, targetId: UUID, errorCode: Error) = Payload(

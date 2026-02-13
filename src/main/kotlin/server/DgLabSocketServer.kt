@@ -5,10 +5,7 @@ import cn.sweetberry.codes.dglab.websocket.common.Payload
 import cn.sweetberry.codes.dglab.websocket.common.codes.Error
 import cn.sweetberry.codes.dglab.websocket.server.BindingRegistry.Role.CLIENT
 import cn.sweetberry.codes.dglab.websocket.server.BindingRegistry.Role.TARGET
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
@@ -25,6 +22,10 @@ class DgLabSocketServer(address: InetSocketAddress) : WebSocketServer(address) {
 
     private val endpoints = ConcurrentHashMap<UUID, Endpoint>()
     private val bindingRegistry = BindingRegistry()
+
+    // 心跳定时器
+    private var heartbeatJob: kotlinx.coroutines.Job? = null
+    private val heartbeatIntervalMs = 60_000L // 每分钟发送一次
 
     override fun onOpen(conn: WebSocket, handshake: ClientHandshake) {
         val newEndpoint = Endpoint.WebSocket(UUID.randomUUID(), conn)
@@ -271,5 +272,61 @@ class DgLabSocketServer(address: InetSocketAddress) : WebSocketServer(address) {
 
     override fun onStart() {
         logger.info("WebSocket server started on ${this.address}:${this.port}")
+        startHeartbeat()
+    }
+
+    /**
+     * 启动心跳定时器
+     */
+    private fun startHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = serverScope.launch {
+            while (isActive) {
+                delay(heartbeatIntervalMs)
+                sendHeartbeatToAll()
+            }
+        }
+    }
+
+    /**
+     * 向所有客户端发送心跳包
+     */
+    private fun sendHeartbeatToAll() {
+        if (endpoints.isEmpty()) return
+
+        logger.debug("Sending heartbeat to ${endpoints.size} endpoints")
+
+        endpoints.forEach { (clientId, endpoint) ->
+            try {
+                // 获取绑定的对端ID，用于心跳消息的 targetId
+                val peerId = bindingRegistry.peerOf(clientId)
+                // 使用工厂方法创建心跳消息
+                val heartbeatPayload = Payload.heartbeat(clientId, peerId)
+                endpoint.send(Json.encodeToString(heartbeatPayload))
+            } catch (e: Exception) {
+                logger.error("Failed to send heartbeat to $clientId: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * 停止心跳定时器
+     */
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
+    override fun stop() {
+        stop(0)
+    }
+
+    override fun stop(timeout: Int) {
+        stop(timeout, "")
+    }
+
+    override fun stop(timeout: Int, closeMessage: String) {
+        stopHeartbeat()
+        super.stop(timeout, closeMessage)
     }
 }

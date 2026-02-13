@@ -164,13 +164,24 @@ class PayloadTest {
     }
 
     @Test
-    fun `test heartbeat payload creation`() {
+    fun `test heartbeat payload creation without target`() {
         val clientId = UUID.randomUUID()
-        val payload = Payload.heartbeat(clientId, Error.SUCCESS)
-        
+        val payload = Payload.heartbeat(clientId)
+
         assertEquals("heartbeat", payload.type)
-        assertEquals(Error.SUCCESS.code, payload.message)
+        assertEquals("200", payload.message)
         assertEquals("", payload.targetId)
+    }
+
+    @Test
+    fun `test heartbeat payload creation with target`() {
+        val clientId = UUID.randomUUID()
+        val targetId = UUID.randomUUID()
+        val payload = Payload.heartbeat(clientId, targetId)
+
+        assertEquals("heartbeat", payload.type)
+        assertEquals("200", payload.message)
+        assertEquals(targetId.toString(), payload.targetId)
     }
 
     @Test

@@ -236,7 +236,7 @@ class DgLabSocketServerBehaviorTest {
         val client = server.openLocal { }!!
 
         // 发送 heartbeat 消息
-        val heartbeatPayload = Payload.heartbeat(client.id, Error.SUCCESS)
+        val heartbeatPayload = Payload.heartbeat(client.id)
         server.handleMessage(client, heartbeatPayload)
 
         // 主要是验证不抛出异常
@@ -432,6 +432,83 @@ class DgLabSocketServerBehaviorTest {
         // 绑定后应该有正确角色
         assertEquals(BindingRegistry.Role.CLIENT, server.getRoleForTest(client.id))
         assertEquals(BindingRegistry.Role.TARGET, server.getRoleForTest(target.id))
+    }
+
+    @Test
+    fun `test heartbeat is sent to connected clients`() {
+        val receivedMessages = mutableListOf<String>()
+        val client = server.openLocal { receivedMessages.add(it) }!!
+        
+        // 等待一小段时间让服务器启动完成
+        Thread.sleep(100)
+        
+        // 手动触发心跳发送（通过反射调用私有方法进行测试）
+        DgLabSocketServer::class.java.getDeclaredMethod("sendHeartbeatToAll").let { method ->
+            method.isAccessible = true
+            method.invoke(server)
+        }
+        
+        // 验证客户端收到了心跳消息
+        assertTrue(receivedMessages.any { it.contains("\"type\":\"heartbeat\"") }, 
+            "客户端应该收到心跳消息")
+        assertTrue(receivedMessages.any { it.contains("\"clientId\":\"${client.id}\"") }, 
+            "心跳消息应包含正确的 clientId")
+        assertTrue(receivedMessages.any { it.contains("\"message\":\"200\"") }, 
+            "心跳消息应包含状态码 200")
+    }
+
+    @Test
+    fun `test heartbeat includes bound peer as targetId`() {
+        val clientMessages = mutableListOf<String>()
+        val targetMessages = mutableListOf<String>()
+        val client = server.openLocal { clientMessages.add(it) }!!
+        val target = server.openLocal { targetMessages.add(it) }!!
+        
+        // 绑定客户端和目标
+        server.handleMessage(target, Payload.bindAttempt(client.id, target.id))
+        
+        // 清空绑定消息
+        clientMessages.clear()
+        targetMessages.clear()
+        
+        // 手动触发心跳发送
+        DgLabSocketServer::class.java.getDeclaredMethod("sendHeartbeatToAll").let { method ->
+            method.isAccessible = true
+            method.invoke(server)
+        }
+        
+        // 验证客户端收到的心跳包含 target.id 作为 targetId
+        val clientHeartbeat = clientMessages.find { it.contains("\"type\":\"heartbeat\"") }
+        assertNotNull(clientHeartbeat, "客户端应收到心跳")
+        assertTrue(clientHeartbeat!!.contains("\"targetId\":\"${target.id}\""), 
+            "绑定后的心跳应包含对端 ID 作为 targetId")
+        
+        // 验证目标收到的心跳包含 client.id 作为 targetId
+        val targetHeartbeat = targetMessages.find { it.contains("\"type\":\"heartbeat\"") }
+        assertNotNull(targetHeartbeat, "目标应收到心跳")
+        assertTrue(targetHeartbeat!!.contains("\"targetId\":\"${client.id}\""), 
+            "绑定后的心跳应包含对端 ID 作为 targetId")
+    }
+
+    @Test
+    fun `test heartbeat targetId is empty when not bound`() {
+        val receivedMessages = mutableListOf<String>()
+        val client = server.openLocal { receivedMessages.add(it) }!!
+        
+        // 等待一小段时间
+        Thread.sleep(100)
+        
+        // 手动触发心跳发送
+        DgLabSocketServer::class.java.getDeclaredMethod("sendHeartbeatToAll").let { method ->
+            method.isAccessible = true
+            method.invoke(server)
+        }
+        
+        // 验证未绑定时 targetId 为空字符串
+        val heartbeat = receivedMessages.find { it.contains("\"type\":\"heartbeat\"") }
+        assertNotNull(heartbeat, "应收到心跳")
+        assertTrue(heartbeat!!.contains("\"targetId\":\"\""), 
+            "未绑定时心跳的 targetId 应为空字符串")
     }
 }
 
