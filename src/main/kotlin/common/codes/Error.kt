@@ -1,5 +1,17 @@
 package cn.sweetberry.codes.dglab.websocket.common.codes
 
+/**
+ * 错误码枚举
+ *
+ * 定义 DGLab 协议中使用的所有错误码。
+ * 错误码分为以下类别：
+ * - 2xx: 成功/信息
+ * - 4xx: 客户端错误
+ * - 5xx: 服务器内部错误
+ *
+ * @property code 错误码字符串
+ * @property message 错误描述（中文）
+ */
 enum class Error(val code: String, val message: String) {
     SUCCESS("200", "成功"),
     CLIENT_OFFLINE("209", "对方客户端已断开"),
